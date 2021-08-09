@@ -39,7 +39,7 @@ class FedAVGServerManager(ServerManager):
             global_model_params = transform_tensor_to_list(global_model_params)
         for process_id in range(1, self.size):
             print(f'sending init msg to client_index: {client_indexes[process_id-1]}')
-            self.send_message_init_config(process_id, global_model_params, client_indexes[process_id-1])
+            self.send_message_init_config(process_id, global_model_params, client_indexes[process_id-1]+1)
 
     def register_message_receive_handlers(self):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2S_SEND_MODEL_TO_SERVER,

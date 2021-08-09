@@ -24,13 +24,13 @@ except:
 
 # args
 parser = argparse.ArgumentParser(description='server communication arguments')
-parser.add_argument('--client_index', type=int, default=0, metavar='N',
-                        help='0 for first client')
+parser.add_argument('--client_index', type=int, default=1, metavar='N',
+                        help='1 for first client')
 parser.add_argument('--client_rank', type=int, default=1, metavar='N',
                         help='1 for first client')
 
 
-parser.add_argument('--grpc_ipconfig_path', type=str, default='./FedML/fedml_experiments/distributed/my_fedavg/grpc_ipconfig.csv', metavar='N',
+parser.add_argument('--grpc_ipconfig_path', type=str, default='./fedml_experiments/distributed/my_fedavg/grpc_ipconfig.csv', metavar='N',
                         help='neural network used in training')
 parser.add_argument('--model', type=str, default='mobilenet', metavar='N',
                         help='neural network used in training')
