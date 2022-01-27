@@ -1,53 +1,45 @@
 import numpy as np
+import logging
 from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import roc_auc_score, accuracy_score
-
+from fedml_api.utils.function_managment import compute_correct_prediction
 from fedml_api.standalone.classical_vertical_fl.vfl_fascilitator import VerticalMultiplePartyLogisticRegressionFederatedLearning
-
-
-def compute_correct_prediction(*, y_targets, y_prob_preds, threshold=0.5):
-    y_hat_lbls = []
-    pred_pos_count = 0
-    pred_neg_count = 0
-    correct_count = 0
-    for y_prob, y_t in zip(y_prob_preds, y_targets):
-        if y_prob <= threshold:
-            pred_neg_count += 1
-            y_hat_lbl = 0
-        else:
-            pred_pos_count += 1
-            y_hat_lbl = 1
-        y_hat_lbls.append(y_hat_lbl)
-        if y_hat_lbl == y_t:
-            correct_count += 1
-
-    return np.array(y_hat_lbls), [pred_pos_count, pred_neg_count, correct_count]
-
+import numpy
+logger = logging.getLogger(__name__)
+log_output = logging.getLogger('training_output')
+fileHandler = logging.FileHandler('training_output.log', mode='w')
+log_output.setLevel(logging.INFO)
+log_output.addHandler(fileHandler)
 
 class FederatedLearningFixture(object):
 
     def __init__(self, federated_learning: VerticalMultiplePartyLogisticRegressionFederatedLearning):
         self.federated_learning = federated_learning
-        print("Step 7: initialize FederatedLearningFixture")
+        logger.info("Step 7: initialize FederatedLearningFixture")
 
-    def fit(self, train_data, test_data, epochs=50, batch_size=-1):
-        print("Step 9: start to fit, split data and refer back to VerticalMultiplePartyLogisticRegressionFederatedLearning")
+    def fit(self, train_data: dict, test_data: dict, epochs=50, batch_size=-1):
+        """
+        Performs the fitting of the federated learning environment
+        """
+        logger.info("Step 9: start to fit, split data and refer back to VerticalMultiplePartyLogisticRegressionFederatedLearning")
         main_party_id = self.federated_learning.get_main_party_id()
-        # Xa_train = train_data[main_party_id]["X"]
+
+        # receives the train and the test data from guest
         y_train = train_data[main_party_id]["Y"]
-        # Xa_test = test_data[main_party_id]["X"]
         y_test = test_data[main_party_id]["Y"]
 
-        N = y_train.shape[0] # Xa_train.shape[0]
+        N = y_train.shape[0]
         residual = N % batch_size
+
+        # received the batches
         if residual == 0:
             n_batches = N // batch_size
         else:
             n_batches = N // batch_size + 1
 
-        print("number of samples:", N)
-        print("batch size:", batch_size)
-        print("number of batches:", n_batches)
+        log_output.info("number of samples: {}".format(N))
+        log_output.info("batch size: {}".format(batch_size))
+        log_output.info("number of batches: {}".format(n_batches))
 
         global_step = -1
         recording_period = 30
@@ -59,11 +51,10 @@ class FederatedLearningFixture(object):
             for batch_idx in range(n_batches):
                 global_step += 1
                 # Splits the data!
-                # prepare batch data for party A, which has y.
-                #Xa_batch = Xa_train[batch_idx * batch_size: batch_idx * batch_size + batch_size]
+                # prepare batch data for guest, which has y.
                 Y_batch = y_train[batch_idx * batch_size: batch_idx * batch_size + batch_size]
 
-                # prepare batch data for all other parties, which only has both X.
+                # prepare batch data for all Hosts parties
                 party_X_train_batch_dict = dict()
                 for party_id, party_X in train_data["party_list"].items():
                     party_X_train_batch_dict[party_id] = party_X[
@@ -85,6 +76,6 @@ class FederatedLearningFixture(object):
                                                                         threshold=threshold)
                     acc = accuracy_score(y_test, y_hat_lbls)
                     auc = 0#roc_auc_score(y_test, y_prob_preds)
-                    print("--- epoch: {0}, batch: {1}, loss: {2}, acc: {3}, auc: {4}"
+                    log_output.info("--- epoch: {0}, batch: {1}, loss: {2}, acc: {3}, auc: {4}"
                           .format(ep, batch_idx, ave_loss, acc, auc))
-                    print("---", precision_recall_fscore_support(y_test, y_hat_lbls, average="macro", warn_for=tuple()))
+                    log_output.info("--- {}".format(precision_recall_fscore_support(y_test, y_hat_lbls, average="macro", warn_for=tuple())))

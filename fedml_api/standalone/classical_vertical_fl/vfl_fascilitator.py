@@ -1,61 +1,73 @@
+import logging
+from fedml_api.standalone.classical_vertical_fl.party_models_fascilitator import VFLHostModel, VFLGuestModel, VFLFacilitator
+import numpy
+
+logger = logging.getLogger(__name__)
+
 class VerticalMultiplePartyLogisticRegressionFederatedLearning(object):
 
-    def __init__(self, party_A, fascilator,main_party_id="_main"):
+    def __init__(self, party_A: VFLGuestModel, fascilator: VFLFacilitator, main_party_id="_main"):
         super(VerticalMultiplePartyLogisticRegressionFederatedLearning, self).__init__()
-        self.fascilator = fascilator
+        self.facilitator = fascilator
         self.main_party_id = main_party_id
         # party A is the parity with labels
         self.party_a = party_A
         # the party dictionary stores other parties that have no labels
         self.party_dict = dict()
-        self.is_debug = False
 
-    def set_debug(self, is_debug):
-        self.is_debug = is_debug
-
-    def get_main_party_id(self):
+    def get_main_party_id(self) -> str:
+        """
+        Retreives the main party ID
+        """
         return self.main_party_id
 
-    def add_party(self, *, id, party_model):
+    def add_party(self, *, id: str, party_model: VFLHostModel):
+        """
+        Adds the ID and the Host model to a dictionary
+        """
         self.party_dict[id] = party_model
 
-    def fit(self, y, party_X_dict, global_step):
-        if self.is_debug: print("==> start fit")
+    def fit(self, y: numpy.ndarray, party_X_dict: dict, global_step: int) -> float:
+        """
+        Performs the forward for each batch on the host model, forwards it to the facilitator, and the loss is computed
+        at the guest. Vice versa holds for the backpropagation
+        """
+        logger.info("==> start fit")
 
-        self.party_a.set_batch(y, global_step)
-
-        if self.is_debug: print("==> Set Batch for all hosts")
+        logger.info("==> Set Batch for all hosts")
         for idx, party_X in party_X_dict.items():
             self.party_dict[idx].set_batch(party_X, global_step)
 
-        if self.is_debug: print("==> Facilitator receives intermediate computing results from hosts")
+        logger.info("==> Facilitator receives intermediate computing results from hosts")
         for party_id, party in self.party_dict.items():
             activations = party.send_components()
-            self.fascilator.receive_activations(activations,party_id)
+            self.facilitator.receive_activations(activations, party_id)
 
-        if self.is_debug: print("==> Facilitator concatenates results")
-        concatenation = self.fascilator.receive_concatination()
+        logger.info("==> Facilitator concatenates results")
+        concatenation = self.facilitator.receive_concatination()
 
-        if self.is_debug: print("==> Guest computes loss")
+        logger.info("==> Set Batch for guest")
+        self.party_a.set_batch(y, global_step)
+
+        logger.info("==> Guest computes loss")
         self.party_a.receive_concatination(concatenation)
         loss = self.party_a.send_loss()
         grad_result = self.party_a.send_gradients()
-        self.fascilator.receive_gradients(grad_result)
+        self.facilitator.receive_gradients(grad_result)
 
-        if self.is_debug: print("==> Hosts receive common grad from facilitator and perform training")
-
+        logger.info("==> Hosts receive common grad from facilitator and perform training")
         for party_id, party in self.party_dict.items():
-            back_prop = self.fascilator.perform_back(party_id)
+            back_prop = self.facilitator.perform_back(party_id)
             party.receive_gradients(back_prop)
 
         return loss
 
-    def predict(self,party_X_dict):
-
+    def predict(self,party_X_dict: dict) -> numpy.ndarray:
+        """
+        Performs the final prediction
+        """
         for id, party_X in party_X_dict.items():
-            print(len(party_X))
             activations = self.party_dict[id].send_predict(party_X)
-            self.fascilator.receive_activations(activations,id)
-
-        self.fascilator.receive_concatination()
+            self.facilitator.receive_activations(activations, id)
+        self.facilitator.receive_concatination()
         return self.party_a.predict(activations)
