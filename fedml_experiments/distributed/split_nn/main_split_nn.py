@@ -88,6 +88,7 @@ def init_training_device(process_ID, fl_worker_num, gpu_num_per_machine):
     return device
 
 
+
 if __name__ == "__main__":
     comm, process_id, worker_number = SplitNN_init()
 
@@ -103,9 +104,10 @@ if __name__ == "__main__":
                         format=str(
                             process_id) + ' - %(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
-    seed = 0
-    np.random.seed(seed)
-    torch.manual_seed(worker_number)
+    #ToDo uncomment eventually just took it out to not have random
+    # seed = 0
+    # np.random.seed(seed)
+    # torch.manual_seed(worker_number)
 
     # load data
     if args.dataset == "cifar10":
@@ -125,7 +127,10 @@ if __name__ == "__main__":
 
     # create the model
     model = None
-    split_layer = 1
+
+    split_layer_client = 1
+
+    # ToDo split_layer_facilitator = 10
     if args.model == "mobilenet":
         model = mobilenet(class_num=class_num)
     elif args.model == "resnet56":
@@ -135,10 +140,16 @@ if __name__ == "__main__":
     model.fc = nn.Sequential(nn.Flatten(),
                              nn.Linear(fc_features, class_num))
     # Split The model
-    client_model = nn.Sequential(*nn.ModuleList(model.children())[:split_layer])
-    server_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer:])
+    client_model = nn.Sequential(*nn.ModuleList(model.children())[:split_layer_client])
+    # ToDo facilitator_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer_client:split_layer_facilitator])
+    server_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer_client:]) # ToDo split_layer_facilitator
 
     SplitNN_distributed(process_id, worker_number, device, comm,
-                        client_model, server_model, train_data_num,
+                        client_model, server_model,  train_data_num,
                         train_data_global, test_data_global, local_data_num,
                         train_data_local, test_data_local, args)
+
+    # SplitNN_distributed(process_id, worker_number, device, comm,
+    #                     client_model, server_model, facilitator_model, train_data_num,
+    #                     train_data_global, test_data_global, local_data_num,
+    #                     train_data_local, test_data_local, args)

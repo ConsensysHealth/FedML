@@ -113,6 +113,11 @@ def load_cifar10_data(datadir):
 def partition_data(dataset, datadir, partition, n_nets, alpha):
     logging.info("*********partition data***************")
     X_train, y_train, X_test, y_test = load_cifar10_data(datadir)
+
+    logging.info(
+        "Remove the following line. It merely allows for shorter training time (fedml_api/data_preprocessing/cifar10/data_loader.py)")
+    X_train, y_train, X_test, y_test = X_train[:500], y_train[:500], X_test[:500], y_test[:500]
+
     n_train = X_train.shape[0]
     # n_test = X_test.shape[0]
 
