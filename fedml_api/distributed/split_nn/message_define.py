@@ -4,6 +4,9 @@ class MyMessage(object):
     """
     # server to client
     MSG_TYPE_S2C_GRADS = 1
+    # ToDo
+    # Server to Fascilitator
+    # Client to Fascilitator
 
     # client to server
     MSG_TYPE_C2S_SEND_ACTS = 2

@@ -5,6 +5,7 @@ import sys
 from mpi4py import MPI
 
 from ..communication.gRPC.grpc_comm_manager import GRPCCommManager
+from ..communication.message import Message
 from ..communication.mpi.com_manager import MpiCommunicationManager
 from ..communication.mqtt.mqtt_comm_manager import MqttCommManager
 from ..communication.observer import Observer
@@ -16,8 +17,8 @@ class ServerManager(Observer):
         self.args = args
         self.size = size
         self.rank = rank
-
         self.backend = backend
+
         if backend == "MPI":
             self.com_manager = MpiCommunicationManager(comm, rank, size, node_type="server")
         elif backend == "MQTT":
@@ -45,11 +46,24 @@ class ServerManager(Observer):
     def receive_message(self, msg_type, msg_params) -> None:
         # logging.info("receive_message. rank_id = %d, msg_type = %s. msg_params = %s" % (
         #     self.rank, str(msg_type), str(msg_params.get_content())))
+        logging.info("Server: Step 6 successfully received the msg from the client")
         handler_callback_func = self.message_handler_dict[msg_type]
         handler_callback_func(msg_params)
 
     def send_message(self, message):
-        self.com_manager.send_message(message)
+        # ToDo Changed to ensure that the server (which will be the guest) can receive multiple msgs
+        # self.com_manager.send_message(message)
+        logging.info("Server: Step 9 sends the message to the cleints")
+
+        msg = Message()
+        msg.add(Message.MSG_ARG_KEY_TYPE, message.get_type())
+        msg.add(Message.MSG_ARG_KEY_SENDER, message.get_sender_id())
+        msg.add(Message.MSG_ARG_KEY_RECEIVER, message.get_receiver_id())
+        for key, value in message.get_params().items():
+            # logging.info("%s == %s" % (key, value))
+            msg.add(key, value)
+        self.com_manager.send_message(msg)
+
 
     @abstractmethod
     def register_message_receive_handlers(self) -> None:

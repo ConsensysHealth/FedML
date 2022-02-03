@@ -30,6 +30,7 @@ class SplitNNFacilitatorManager(FacilitatorManager):
     #     self.send_message(message)
     #
     # def handle_message_acts(self, msg_params):
+    # ToDo for the Facilitator the activations should be just forwarded. So implement a function send_act_to_client
     #     acts, labels = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
     #     self.trainer.forward_pass(acts, labels)
     #     if self.trainer.phase == "train":

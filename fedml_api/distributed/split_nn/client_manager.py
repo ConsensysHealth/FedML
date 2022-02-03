@@ -13,14 +13,18 @@ class SplitNNClientManager(ClientManager):
         self.trainer = trainer
         self.trainer.train_mode()
         self.round_idx = 0
+        self.arg_dict = arg_dict
 
     def run(self):
+        # ToDo maybe this trainer.ramk == 2 if we add the facilitator
         if self.trainer.rank == 1:
-            logging.info("Starting protocol from rank 1 process")
+            logging.info("Starting protocol from rank {} process".format(self.trainer.rank))
             self.run_forward_pass()
         super().run()
 
     def register_message_receive_handlers(self):
+        logging.info("Client {}: Step 4 Saving Messages in a dictionary. From the client this implies that it can handle "
+                     "C2C amd S2C grads".format(self.arg_dict["rank"]))
         self.register_message_receive_handler(MyMessage.MSG_TYPE_C2C_SEMAPHORE,
                                               self.handle_message_semaphore)
         self.register_message_receive_handler(MyMessage.MSG_TYPE_S2C_GRADS,
@@ -55,6 +59,7 @@ class SplitNNClientManager(ClientManager):
             self.finish()
 
     def handle_message_gradients(self, msg_params):
+        logging.info("Client {}: Step 9 receives the gradients".format(self.trainer.rank))
         grads = msg_params.get(MyMessage.MSG_ARG_KEY_GRADS)
         self.trainer.backward_pass(grads)
         if self.trainer.batch_idx == len(self.trainer.trainloader):
@@ -65,7 +70,10 @@ class SplitNNClientManager(ClientManager):
             self.run_forward_pass()
 
     def send_activations_and_labels_to_server(self, acts, labels, receive_id):
+        # ToDo adjust that clients send to Facilitator
+        logging.info("Client {}: Step 5 sends the activations and labels to receive_id {}".format(self.trainer.rank,receive_id))
         message = Message(MyMessage.MSG_TYPE_C2S_SEND_ACTS, self.get_sender_id(), receive_id)
+        # ToDo adjust that clients send only activations and not labels
         message.add_params(MyMessage.MSG_ARG_KEY_ACTS, (acts, labels))
         self.send_message(message)
 
