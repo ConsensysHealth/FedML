@@ -16,8 +16,7 @@ class SplitNN_server():
         self.log_step = 50
         self.active_node = 1
         self.train_mode()
-        self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9,
-                                   weight_decay=5e-4)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
         self.criterion = nn.CrossEntropyLoss()
 
     def reset_local_params(self):
@@ -33,6 +32,7 @@ class SplitNN_server():
         self.reset_local_params()
 
     def eval_mode(self):
+        logging.info("Step 10: Evaluates model and resets parameters")
         self.model.eval()
         self.phase = "validation"
         self.reset_local_params()
@@ -41,14 +41,17 @@ class SplitNN_server():
         self.acts = acts
         self.optimizer.zero_grad()
         self.acts.retain_grad()
-        logits = self.model(acts)
+        logits = self.model(self.acts)
         _, predictions = logits.max(1)
         self.loss = self.criterion(logits, labels)
         self.total += labels.size(0)
         self.correct += predictions.eq(labels).sum().item()
+
         if self.step % self.log_step == 0 and self.phase == "train":
+            logging.info("Step 5: Server performs forward on activation {} "
+                         "and label {} with logits {}".format(type(acts), type(labels), type(logits)))
             acc = self.correct / self.total
-            logging.info("phase={} acc={} loss={} epoch={} and step={}"
+            logging.info("Is it This: phase={} acc={} loss={} epoch={} and step={}"
                          .format("train", acc, self.loss.item(), self.epoch, self.step))
         if self.phase == "validation":
             self.val_loss += self.loss.item()
@@ -60,13 +63,13 @@ class SplitNN_server():
         return self.acts.grad
 
     def validation_over(self):
-        # not precise estimation of validation loss 
+        # not precise estimation of validation loss
         self.val_loss /= self.step
         acc = self.correct / self.total
         logging.info("phase={} acc={} loss={} epoch={} and step={}"
                      .format(self.phase, acc, self.val_loss, self.epoch, self.step))
 
         self.epoch += 1
-        self.active_node = (self.active_node % self.MAX_RANK) + 1
+        # self.active_node = (self.active_node % self.MAX_RANK) + 1
         self.train_mode()
-        logging.info("current active client is {}".format(self.active_node))
+        # logging.info("current active client is {}".format(self.active_node))
