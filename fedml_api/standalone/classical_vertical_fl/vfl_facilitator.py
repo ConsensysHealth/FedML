@@ -1,5 +1,5 @@
 import logging
-from fedml_api.standalone.classical_vertical_fl.party_models_fascilitator import VFLHostModel, VFLGuestModel, VFLFacilitator
+from fedml_api.standalone.classical_vertical_fl.party_models_facilitator import VFLHostModel, VFLGuestModel, VFLFacilitator
 import numpy
 
 logger = logging.getLogger(__name__)

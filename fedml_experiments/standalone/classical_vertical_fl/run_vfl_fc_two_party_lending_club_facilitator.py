@@ -5,10 +5,10 @@ from sklearn.utils import shuffle
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
 from fedml_api.data_preprocessing.lending_club_loan.lending_club_dataset import loan_load_two_party_data
-from fedml_api.standalone.classical_vertical_fl.vfl_fixture_fascilitator import FederatedLearningFixture
-from fedml_api.standalone.classical_vertical_fl.party_models_fascilitator import VFLGuestModel, VFLHostModel, VFLFacilitator
+from fedml_api.standalone.classical_vertical_fl.vfl_fixture_fascilitator import fed_learning_fixture_fit
+from fedml_api.standalone.classical_vertical_fl.party_models_facilitator import VFLGuestModel, VFLHostModel, VFLFacilitator
 from fedml_api.model.finance.vfl_models_standalone import LocalModel, DenseModel
-from fedml_api.standalone.classical_vertical_fl.vfl_fascilitator import VerticalMultiplePartyLogisticRegressionFederatedLearning
+from fedml_api.standalone.classical_vertical_fl.vfl_facilitator import VerticalMultiplePartyLogisticRegressionFederatedLearning
 
 
 def run_experiment(train_data: list, test_data: list, batch_size: int, learning_rate: float, epoch:int):
@@ -46,14 +46,12 @@ def run_experiment(train_data: list, test_data: list, batch_size: int, learning_
 
     print("################################ Train Federated Models ############################")
 
-    fl_fixture = FederatedLearningFixture(federatedLearning)
-
     train_data = {federatedLearning.get_main_party_id(): {"Y": y_train},
                   "party_list": {"Client 1": Xa_train, "Client 2": Xb_train}}
     test_data = {federatedLearning.get_main_party_id(): {"Y": y_test},
                  "party_list": {"Client 1": Xa_test, "Client 2": Xb_test}}
 
-    fl_fixture.fit(train_data=train_data, test_data=test_data, epochs=epoch, batch_size=batch_size)
+    fed_learning_fixture_fit(federatedLearning,train_data=train_data, test_data=test_data, epochs=epoch, batch_size=batch_size)
 
 
 if __name__ == '__main__':
