@@ -113,6 +113,10 @@ def load_cifar10_data(datadir):
 def partition_data(dataset, datadir, partition, n_nets, alpha):
     logging.info("*********partition data***************")
     X_train, y_train, X_test, y_test = load_cifar10_data(datadir)
+    logging.info(
+        "Remove the following line. It merely allows for shorter training time (fedml_api/data_preprocessing/cifar10/data_loader.py)")
+    X_train, y_train, X_test, y_test = X_train[:500], y_train[:500], X_test[:500], y_test[:500]
+
     n_train = X_train.shape[0]
     # n_test = X_test.shape[0]
 
@@ -205,6 +209,10 @@ def load_partition_data_distributed_cifar10(process_id, dataset, data_dir, parti
                                                                                              partition_method,
                                                                                              client_number,
                                                                                              partition_alpha)
+    logging.info("len(X_train) {}, len(y_train) {}, len(X_test) {}, len(y_test) {}, len(net_dataidx_map) {},"
+                 " len(traindata_cls_counts) {}".format(len(X_train), len(y_train), len(X_test), len(y_test),
+                                                        len(net_dataidx_map), len(traindata_cls_counts)))
+
     class_num = len(np.unique(y_train))
     logging.info("traindata_cls_counts = " + str(traindata_cls_counts))
     train_data_num = sum([len(net_dataidx_map[r]) for r in range(client_number)])
@@ -212,8 +220,8 @@ def load_partition_data_distributed_cifar10(process_id, dataset, data_dir, parti
     # get global test data
     if process_id == 0:
         train_data_global, test_data_global = get_dataloader(dataset, data_dir, batch_size, batch_size)
-        logging.info("train_dl_global number = " + str(len(train_data_global)))
-        logging.info("test_dl_global number = " + str(len(test_data_global)))
+        # logging.info("train_dl_global number = " + str(len(train_data_global)))
+        # logging.info("test_dl_global number = " + str(len(test_data_global)))
         train_data_local = None
         test_data_local = None
         local_data_num = 0
@@ -225,6 +233,7 @@ def load_partition_data_distributed_cifar10(process_id, dataset, data_dir, parti
         # training batch size = 64; algorithms batch size = 32
         train_data_local, test_data_local = get_dataloader(dataset, data_dir, batch_size, batch_size,
                                                  dataidxs)
+        logging.info("Checking type for train_data_local {} and test {}".format(type(train_data_local), type(test_data_local)))
         logging.info("process_id = %d, batch_num_train_local = %d, batch_num_test_local = %d" % (
             process_id, len(train_data_local), len(test_data_local)))
         train_data_global = None
@@ -238,6 +247,9 @@ def load_partition_data_cifar10(dataset, data_dir, partition_method, partition_a
                                                                                              partition_method,
                                                                                              client_number,
                                                                                              partition_alpha)
+
+    X_train, y_train, X_test, y_test = X_train[:200], y_train[:200], X_test[:20], y_test[:20]
+
     class_num = len(np.unique(y_train))
     logging.info("traindata_cls_counts = " + str(traindata_cls_counts))
     train_data_num = sum([len(net_dataidx_map[r]) for r in range(client_number)])

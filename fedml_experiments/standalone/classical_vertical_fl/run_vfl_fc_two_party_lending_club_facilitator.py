@@ -55,9 +55,9 @@ def run_experiment(train_data: list, test_data: list, batch_size: int, learning_
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='fasciliator_info.log', level=logging.INFO, format = '%(asctime)s:%(name)s:%(message)s')
-    logger = logging.getLogger("main")
-    logger.info('Master runs')
+    logging.basicConfig(filename='fasciliator_debug_check _info.log', level=logging.DEBUG, format = '%(asctime)s:%(name)s:%(message)s')
+    logging = logging.getLogger("main")
+    logging.info('Master runs')
 
     print("################################ Prepare Data ############################")
     data_dir = "../../../data/lending_club_loan/"

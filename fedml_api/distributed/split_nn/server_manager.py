@@ -4,6 +4,7 @@ from fedml_core.distributed.communication.message import Message
 
 import logging
 
+
 class SplitNNServerManager(ServerManager):
 
     def __init__(self, arg_dict, trainer, backend="MPI"):
@@ -17,11 +18,11 @@ class SplitNNServerManager(ServerManager):
 
     def register_message_receive_handlers(self):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_F2S_SEND_ACTS,
-                                              self.handle_message_acts)
+                                              self.handle_message_acts) # Done
         self.register_message_receive_handler(MyMessage.MSG_TYPE_F2S_VALIDATION_MODE,
-                                              self.handle_message_validation_mode)
+                                              self.handle_message_validation_mode) # Done
         self.register_message_receive_handler(MyMessage.MSG_TYPE_F2S_VALIDATION_OVER,
-                                              self.handle_message_validation_over)
+                                              self.handle_message_validation_over) # Done
         self.register_message_receive_handler(MyMessage.MSG_TYPE_F2S_PROTOCOL_FINISHED,
                                               self.handle_message_finish_protocol)
 
@@ -31,11 +32,12 @@ class SplitNNServerManager(ServerManager):
         self.send_message(message)
 
     def handle_message_acts(self, msg_params):
+        # ToDo change acts = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
         acts, labels = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
         self.trainer.forward_pass(acts, labels)
         if self.trainer.phase == "train":
             grads = self.trainer.backward_pass()
-            logging.info("Step 6: Server performs back and sends it back to facilitator {} ".format(type(grads)))
+            logging.info("Step 6: Server performs back and sends it back to facilitator")
             self.send_grads_to_facilitator(grads)
 
     def handle_message_validation_mode(self, msg_params):
@@ -45,6 +47,6 @@ class SplitNNServerManager(ServerManager):
     def handle_message_validation_over(self, msg_params):
         self.trainer.validation_over()
 
-    # ToDo Change 1 added msg_params
     def handle_message_finish_protocol(self, msg_params):
+        logging.info("Step 17: Received finish signal and is finishing on server side")
         self.finish()

@@ -51,7 +51,7 @@ def add_args(parser):
 
     parser.add_argument('--wd', help='weight decay parameter;', type=float, default=0.001)
 
-    parser.add_argument('--epochs', type=int, default=5, metavar='EP',
+    parser.add_argument('--epochs', type=int, default=3, metavar='EP',
                         help='how many epochs will be trained locally')
 
     parser.add_argument('--local_points', type=int, default=5000, metavar='LP',
@@ -99,17 +99,21 @@ if __name__ == "__main__":
     str_process_name = "SplitNN (distributed):" + str(process_id)
     setproctitle.setproctitle(str_process_name)
 
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.INFO,filename='debug_final.log',
                         format=str(
                             process_id) + ' - %(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                         datefmt='%a, %d %b %Y %H:%M:%S')
+
+    # logging.basicConfig(filename='debug_final.log', level=logging.INFO,
+    #                     format=str(process_id) + ' - %(asctime)s %(filename)s[line:%(lineno)d]'
+    #                                              ' %(levelname)s %(message)s',datefmt='%a, %d %b %Y %H:%M:%S')
+
     seed = 0
     np.random.seed(seed)
     torch.manual_seed(worker_number)
 
-
-
     # load data
+    # ToDo change from type dataloader to customized
     if args.dataset == "cifar10":
         data_loader = load_partition_data_distributed_cifar10
     elif args.dataset == "cifar100":
@@ -139,13 +143,10 @@ if __name__ == "__main__":
     model.fc = nn.Sequential(nn.Flatten(),
                              nn.Linear(fc_features, class_num))
 
-    # Split The model
+    # Split The model into three parts
     client_model = nn.Sequential(*nn.ModuleList(model.children())[:split_layer_client])
     facilitator_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer_client:split_layer_facilitator])
     guest_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer_facilitator:])
-    # logging.info("client_model {}".format(client_model))
-    # logging.info("facilitator_model {}".format(facilitator_model))
-    # logging.info("guest_model {}".format(guest_model))
 
     SplitNN_fac_distributed(process_id, worker_number, device, comm, client_model, guest_model, facilitator_model,
                             train_data_local, test_data_local, args)

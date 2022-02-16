@@ -2,12 +2,10 @@ import logging
 
 import torch.optim as optim
 
-
 class SplitNN_client():
     def __init__(self, args):
         self.comm = args["comm"]
         self.model = args["model"]
-
         self.trainloader = args["trainloader"]
         self.testloader = args["testloader"]
         self.MAX_RANK = args["max_rank"]
@@ -16,14 +14,10 @@ class SplitNN_client():
         self.FACILITATOR_RANK = args["facilitator_rank"]
         self.rank = args["rank"]
         self.epoch_count = 0
-
-        # ToDo Check what else is required
         self.node_left = self.MAX_RANK if self.rank == 1 else self.rank - 1
         self.node_right = 2 if self.rank == self.MAX_RANK else self.rank + 1
-
         self.batch_idx = 0
         self.MAX_EPOCH_PER_NODE = args["epochs"]
-
         self.device = args["device"]
 
     def forward_pass(self):

@@ -51,6 +51,9 @@ class SplitNN_facilitator():
 
     def validation_over(self):
         # not precise estimation of validation loss
-        self.active_node = (self.active_node-1) % (self.MAX_RANK-2) + 3
+
+        self.active_node = ((self.active_node - 1) % (self.MAX_RANK - 1)) + 1
+        self.active_node += 1
+        # self.active_node = (self.active_node-1) % (self.MAX_RANK-2) + 3
         self.train_mode()
-        logging.info("current active client is {}".format(self.active_node))
+        logging.info("Step 12 validating current active client{}".format(self.active_node))
