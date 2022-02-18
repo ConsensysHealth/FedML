@@ -181,7 +181,7 @@ def get_dataloader_CIFAR10(datadir, batch_size, dataidxs=None):
     train_data_batch = []
     train_label_batch = []
 
-    for train_batch in range(20):#len(train_dataiter)):
+    for train_batch in range(20):#len(train_dataiter)): # Important Change this line made shorter to debug
         train_data_data, train_data_label = train_dataiter.next()
         train_data_batch.append(train_data_data)
         train_label_batch.append(train_data_label)
@@ -189,13 +189,11 @@ def get_dataloader_CIFAR10(datadir, batch_size, dataidxs=None):
     test_dataiter = iter(test_dl)
     test_data_batch = []
     test_label_batch = []
-    logging.info("Important Change this line made shorter to debug")
-    for test_batch in range(10):#test_dataiter)):
+    logging.info("Can make this shorter to debug")
+    for test_batch in range(10):# len(test_dataiter)):
         test_data_data, test_data_label = test_dataiter.next()
         test_data_batch.append(test_data_data)
         test_label_batch.append(test_data_label)
-
-
 
     return train_data_batch, train_label_batch, test_data_batch, test_label_batch
 
@@ -220,15 +218,22 @@ def load_partition_data_distributed_cifar10(process_id, dataset, data_dir, parti
                                                                              client_number-1,partition_alpha)
     class_num = len(np.unique(y_train))
     logging.info("traindata_cls_counts = " + str(traindata_cls_counts))
+    server_dict_train = {}
+    server_dict_test = {}
 
     # get global test data
     if process_id == 0 or process_id == 1:
         local_data_num = None
         train_data_batch = None
-        train_label_batch = None
         test_data_batch = None
-        test_label_batch = None
-        pass
+        if process_id == 0:
+            for client in range(client_number - 2):
+                dataidxs = net_dataidx_map[client + 1]
+                # training batch size = 64; algorithms batch size = 32
+                _, train_label_batch, _, test_label_batch = get_dataloader_CIFAR10(data_dir, batch_size,
+                                                                                   dataidxs)
+                server_dict_train[client+2] = train_label_batch
+                server_dict_test[client+2] = train_label_batch
     else:
         # get local dataset
         dataidxs = net_dataidx_map[process_id - 1]
@@ -237,9 +242,12 @@ def load_partition_data_distributed_cifar10(process_id, dataset, data_dir, parti
         # training batch size = 64; algorithms batch size = 32
         train_data_batch, train_label_batch, test_data_batch, test_label_batch = get_dataloader_CIFAR10(data_dir, batch_size,
                                                  dataidxs)
+        server_dict_train[process_id] = [train_label_batch]
+        server_dict_test[process_id] = [train_label_batch]
+
         logging.info("process_id = %d, batch_num_train_local = %d, batch_num_test_local this one = %d" % (
             process_id, len(train_data_batch), len(test_data_batch)))
-    return local_data_num, train_data_batch, train_label_batch, test_data_batch, test_label_batch, class_num
+    return local_data_num, train_data_batch, server_dict_train, test_data_batch, server_dict_test, class_num
 
 
 def load_partition_data_cifar10(dataset, data_dir, partition_method, partition_alpha, client_number, batch_size):

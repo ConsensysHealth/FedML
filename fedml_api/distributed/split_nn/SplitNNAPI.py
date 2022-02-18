@@ -33,17 +33,15 @@ def SplitNN_fac_distributed(process_id: int, worker_number: int, device, comm, c
 
     server_rank = 0
     facilitator_rank = 1
+    # logging.info("Train label Check Anna {}".format(train_label_batch))
 
     if process_id == server_rank:
-        train_label_batch = None
-        test_label_batch = None
         init_server(comm, server_model, process_id, worker_number, train_label_batch, test_label_batch, device, args)
     elif process_id == facilitator_rank:
         init_facilitator(comm, facilitator_model, process_id, server_rank, worker_number, device, args)
     else:
-        # ToDo Delete this label laaaaaaaaater :)
-        init_client(comm, client_model, worker_number, (train_data_batch, train_label_batch),
-                    (test_data_batch,train_label_batch),process_id, facilitator_rank, args.epochs, device, args)
+        init_client(comm, client_model, worker_number, train_data_batch,test_data_batch, process_id, facilitator_rank,
+                    args.epochs, device, args)
 
 def init_facilitator(comm, facilitator_model: Sequential, process_id: int, server_rank: int, worker_number: int,
                      device, args):

@@ -34,25 +34,21 @@ class SplitNNFacilitatorManager(FacilitatorManager):
         self.send_grads_to_client(self.trainer.active_node,grads)
 
     def handle_message_acts(self, msg_params):
-        # ToDo Change
-        acts, labels = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS) # ToDo Change acts = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
-        acts, labels = self.trainer.forward_pass(acts, labels) # ToDo Change acts = self.trainer.forward_pass(acts)
+        acts, rank_info = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
+        acts, rank_info = self.trainer.forward_pass(acts, rank_info)
         logging.info("Step 4a: Facilitator receceives and performs forward prop")
-        # ToDo self.send_activations_to_server(acts, self.trainer.SERVER_RANK)
-        self.send_activations_to_server(acts, labels, self.trainer.SERVER_RANK)
+        self.send_activations_to_server(acts, rank_info, self.trainer.SERVER_RANK)
 
-    # ToDo send_activations_to_server(self, acts, receive_id):
-    def send_activations_to_server(self, acts, labels, receive_id):
+
+    def send_activations_to_server(self, acts: torch.Tensor, rank_info: list, receive_id:int):
         logging.info("Step 4b: Facilitator Sends them to server")
         message = Message(MyMessage.MSG_TYPE_F2S_SEND_ACTS, self.get_sender_id(), receive_id)
-        # ToDo change message.add_params(MyMessage.MSG_ARG_KEY_ACTS, acts)
-        message.add_params(MyMessage.MSG_ARG_KEY_ACTS, (acts, labels))
+        message.add_params(MyMessage.MSG_ARG_KEY_ACTS, (acts, rank_info))
         self.send_message(message)
 
-    def send_grads_to_client(self, receive_id, grads):
+    def send_grads_to_client(self, receive_id: int, grads: torch.Tensor):
         logging.info("Step 6b: Facilitator sends grads back to client {} ".format(self.trainer.active_node))
         message = Message(MyMessage.MSG_TYPE_F2C_GRADS, self.get_sender_id(), receive_id)
-
         message.add_params(MyMessage.MSG_ARG_KEY_GRADS, grads)
         self.send_message(message)
 
@@ -61,7 +57,7 @@ class SplitNNFacilitatorManager(FacilitatorManager):
         self.send_validation_signal_to_server(self.trainer.SERVER_RANK)
         self.trainer.eval_mode()
 
-    def send_validation_signal_to_server(self, receive_id):
+    def send_validation_signal_to_server(self, receive_id: int):
         message = Message(MyMessage.MSG_TYPE_F2S_VALIDATION_MODE, self.get_sender_id(), receive_id)
         self.send_message(message)
 
@@ -69,7 +65,7 @@ class SplitNNFacilitatorManager(FacilitatorManager):
         self.trainer.validation_over()
         self.send_validation_over_to_server(self.trainer.SERVER_RANK)
 
-    def send_validation_over_to_server(self, receive_id):
+    def send_validation_over_to_server(self, receive_id: int):
         message = Message(MyMessage.MSG_TYPE_F2S_VALIDATION_OVER, self.get_sender_id(), receive_id)
         self.send_message(message)
 
@@ -77,6 +73,6 @@ class SplitNNFacilitatorManager(FacilitatorManager):
         logging.info("Step 16: Facilitator received finish and is passing it on")
         self.send_finish_to_server(self.trainer.SERVER_RANK)
 
-    def send_finish_to_server(self, receive_id):
+    def send_finish_to_server(self, receive_id: int):
         message = Message(MyMessage.MSG_TYPE_F2S_PROTOCOL_FINISHED, self.get_sender_id(), receive_id)
         self.send_message(message)

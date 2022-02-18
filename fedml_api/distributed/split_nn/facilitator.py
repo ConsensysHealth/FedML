@@ -1,5 +1,6 @@
 import logging
 
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -19,41 +20,35 @@ class SplitNN_facilitator():
         self.epoch = 0
         self.train_mode()
 
-    # ToDo Change back
     def reset_local_params(self):
         self.batch_idx = 0
 
     def train_mode(self):
         self.model.train()
         self.phase = "train"
-        # ToDo Change back
         self.reset_local_params()
 
     def eval_mode(self):
         self.model.eval()
         self.phase = "validation"
-        # ToDo Change back
         self.reset_local_params()
 
-    def forward_pass(self, acts, labels): # ToDo Still change that the labels are not passed
+    def forward_pass(self, acts: torch.Tensor, rank_info: list): #-> tuple[torch.Tensor,list]:
         self.optimizer.zero_grad()
         self.input_layer = acts
         self.input_layer.retain_grad()
         self.acts = self.model(acts)
         self.acts.retain_grad()
-        return self.acts, labels
+        return self.acts, rank_info
 
-    def backward_pass(self, grads):
-        # This is from Server
+    def backward_pass(self, grads: torch.Tensor) -> torch.Tensor:
         self.acts.backward(grads)
         self.optimizer.step()
         return self.input_layer.grad
 
     def validation_over(self):
         # not precise estimation of validation loss
-
         self.active_node = ((self.active_node - 1) % (self.MAX_RANK - 1)) + 1
         self.active_node += 1
-        # self.active_node = (self.active_node-1) % (self.MAX_RANK-2) + 3
         self.train_mode()
         logging.info("Step 12 validating current active client{}".format(self.active_node))

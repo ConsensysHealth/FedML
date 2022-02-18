@@ -87,7 +87,6 @@ def init_training_device(process_ID, fl_worker_num, gpu_num_per_machine):
     logging.info(device)
     return device
 
-
 if __name__ == "__main__":
     comm, process_id, worker_number = SplitNN_init()
 
@@ -112,8 +111,6 @@ if __name__ == "__main__":
     np.random.seed(seed)
     torch.manual_seed(worker_number)
 
-    # load data
-    # ToDo change from type dataloader to customized
     if args.dataset == "cifar10":
         data_loader = load_partition_data_distributed_cifar10
     elif args.dataset == "cifar100":
@@ -123,9 +120,10 @@ if __name__ == "__main__":
     else:
         data_loader = load_partition_data_distributed_cifar10
 
-    local_data_num, train_data_batch, train_label_batch, test_data_batch, test_label_batch, class_num \
+    local_data_num, train_data_batch, server_dict_train, test_data_batch, server_dict_test, class_num \
         = data_loader(process_id, args.dataset, args.data_dir,args.partition_method, args.partition_alpha,
                                      args.client_number, args.batch_size)
+
     # create the model
     model = None
     split_layer_client = 3
@@ -146,4 +144,4 @@ if __name__ == "__main__":
     guest_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer_facilitator:])
 
     SplitNN_fac_distributed(process_id, worker_number, device, comm, client_model, guest_model, facilitator_model,
-                            train_data_batch, train_label_batch, test_data_batch, test_label_batch, args)
+                            train_data_batch, server_dict_train, test_data_batch, server_dict_test, args)

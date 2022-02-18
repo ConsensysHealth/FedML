@@ -2,6 +2,7 @@ from fedml_api.distributed.split_nn.message_define import MyMessage
 from fedml_core.distributed.server.server_manager import ServerManager
 from fedml_core.distributed.communication.message import Message
 
+import torch
 import logging
 
 
@@ -26,15 +27,15 @@ class SplitNNServerManager(ServerManager):
         self.register_message_receive_handler(MyMessage.MSG_TYPE_F2S_PROTOCOL_FINISHED,
                                               self.handle_message_finish_protocol)
 
-    def send_grads_to_facilitator(self, grads):
+    def send_grads_to_facilitator(self, grads: torch.Tensor):
         message = Message(MyMessage.MSG_TYPE_S2F_GRADS, self.get_sender_id(), self.trainer.active_node)
         message.add_params(MyMessage.MSG_ARG_KEY_GRADS, grads)
         self.send_message(message)
 
     def handle_message_acts(self, msg_params):
         # ToDo change acts = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
-        acts, labels = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
-        self.trainer.forward_pass(acts, labels)
+        acts, rank = msg_params.get(MyMessage.MSG_ARG_KEY_ACTS)
+        self.trainer.forward_pass(acts, rank)
         if self.trainer.phase == "train":
             grads = self.trainer.backward_pass()
             logging.info("Step 6: Server performs back and sends it back to facilitator")

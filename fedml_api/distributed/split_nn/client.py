@@ -1,5 +1,5 @@
 import logging
-
+import torch
 import torch.optim as optim
 
 class SplitNN_client():
@@ -7,16 +7,10 @@ class SplitNN_client():
         self.comm = args["comm"]
         self.model = args["model"]
 
-        self.trainloader = args["trainloader"]
-        self.traindata = self.trainloader[0]
-        # ToDo this can be deleted once we have all the data at the server
-        self.trainlabel = self.trainloader[1]
+        self.traindata = args["trainloader"]
         self.train_counter = 0
 
-        self.testloader = args["testloader"]
-        self.testdata = self.testloader[0]
-        # ToDo this can be deleted once we have all the data at the server
-        self.testlabel = self.testloader[1]
+        self.testdata = args["testloader"]
         self.test_counter = 0
 
         self.MAX_RANK = args["max_rank"]
@@ -31,29 +25,33 @@ class SplitNN_client():
         self.MAX_EPOCH_PER_NODE = args["epochs"]
         self.device = args["device"]
 
-    def forward_pass(self):
+    def forward_pass(self):# -> tuple[torch.Tensor, list]:
+        if self.phase == "train":
+            self.data = self.traindata[self.train_counter].to(self.device)
+            self.counter = self.train_counter
+            self.train_counter += 1
+            logging.info("self.train_counter {} and self.rank {} ".format(self.train_counter,self.rank))
+        else:
+            self.data = self.testdata[self.test_counter].to(self.device)
+            self.counter = self.test_counter
+            self.test_counter += 1
+            logging.info("self.test_counter {} and self.rank {} ".format(self.test_counter,self.rank))
         self.optimizer.zero_grad()
         self.acts = self.model(self.data)
         logging.info("rank {} batch_idx {}".format(self.rank, self.batch_idx))
-        return self.acts, self.datalabel
+        return self.acts, (self.rank,self.counter,self.phase)
 
-    def backward_pass(self, grads):
+    def backward_pass(self, grads: torch.Tensor):
         self.acts.backward(grads)
         self.optimizer.step()
 
     def eval_mode(self):
-        logging.info("Step 11: Client Entered Eval_mode")
-        self.datalabel = self.testlabel[self.test_counter].to(self.device)
-        self.data = self.testdata[self.test_counter].to(self.device)
-        self.test_counter += 1
-
+        logging.info("Step 11: Client Entered Eval_mode with test_counter {} of rank {}".format(self.test_counter,
+                                                                                                self.rank))
+        self.phase = "evaluation"
         self.model.eval()
 
     def train_mode(self):
         logging.info("Entered Train_mode")
-        self.datalabel = self.trainlabel[self.train_counter].to(self.device)
-        logging.info("Entered Train_mode{}".format(self.datalabel))
-        self.data = self.traindata[self.train_counter].to(self.device)
-        self.train_counter += 1
-
+        self.phase = "train"
         self.model.train()
