@@ -53,14 +53,8 @@ class CIFAR10_truncated(data.Dataset):
         print("download = " + str(self.download))
         cifar_dataobj = CIFAR10(self.root, self.train, self.transform, self.target_transform, self.download)
 
-        if self.train:
-            # print("train member of the class: {}".format(self.train))
-            # data = cifar_dataobj.train_data
-            data = cifar_dataobj.data
-            target = np.array(cifar_dataobj.targets)
-        else:
-            data = cifar_dataobj.data
-            target = np.array(cifar_dataobj.targets)
+        data = cifar_dataobj.data
+        target = np.array(cifar_dataobj.targets)
 
         if self.dataidxs is not None:
             data = data[self.dataidxs]

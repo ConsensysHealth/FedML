@@ -55,6 +55,7 @@ class SplitNNClientManager(ClientManager):
         self.trainer.eval_mode()
         for i in range(len(self.trainer.testloader)):
             self.run_forward_pass()
+        self.trainer.test_counter = 0
         self.send_validation_over_to_facilitator(self.trainer.FACILITATOR_RANK)
         self.round_idx += 1
         if self.round_idx == (self.trainer.MAX_EPOCH_PER_NODE-1) and self.trainer.rank == self.trainer.MAX_RANK:
@@ -77,10 +78,12 @@ class SplitNNClientManager(ClientManager):
         grads = msg_params.get(MyMessage.MSG_ARG_KEY_GRADS)
         self.trainer.backward_pass(grads)
         if self.trainer.batch_idx == len(self.trainer.trainloader):
+
             logging.info("Step 7 Alternative: Client received grads for evaluation Epoch over at node {}".format(self.rank))
             #self.round_idx += 1 ToDo Change 2
             self.run_eval()
-            self.trainer.batch_idx = 0 # ToDo Change 2
+            self.trainer.train_counter = 0 # ToDo Change 2
+            self.trainer.batch_idx = 0
         else:
             logging.info("Step 7: Client {} received grads performed back and is performing forward of batch_idx {} "
                          "/ len trainloader {}".format(self.rank,self.trainer.batch_idx,len(self.trainer.trainloader)))

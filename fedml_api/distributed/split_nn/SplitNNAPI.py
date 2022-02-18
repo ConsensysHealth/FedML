@@ -20,8 +20,8 @@ def SplitNN_init():
     return comm, process_id, worker_number
 
 def SplitNN_fac_distributed(process_id: int, worker_number: int, device, comm, client_model,
-                            server_model: Sequential, facilitator_model: Sequential, train_data_local,
-                            test_data_local, args):
+                            server_model: Sequential, facilitator_model: Sequential, train_data_batch,
+                            train_label_batch, test_data_batch, test_label_batch, args):
     """
     Instantiates the Guest, Host and Facilitator
 
@@ -30,22 +30,20 @@ def SplitNN_fac_distributed(process_id: int, worker_number: int, device, comm, c
         Guest by default, 1 to the Facilitator and the remaining to the participating hosts.
         worker_number: Overall number of participants in the FL env
     """
-    # ToDo update train_data_local, test_data_local, split the data into train_labels and test_labels
-    train_data = train_data_local
-    test_data = test_data_local
-    train_label = None
-    test_label = None
 
     server_rank = 0
     facilitator_rank = 1
 
     if process_id == server_rank:
-        init_server(comm, server_model, process_id, worker_number, train_label, test_label, device, args)
+        train_label_batch = None
+        test_label_batch = None
+        init_server(comm, server_model, process_id, worker_number, train_label_batch, test_label_batch, device, args)
     elif process_id == facilitator_rank:
         init_facilitator(comm, facilitator_model, process_id, server_rank, worker_number, device, args)
     else:
-        init_client(comm, client_model, worker_number, train_data, test_data,
-                    process_id, facilitator_rank, args.epochs, device, args)
+        # ToDo Delete this label laaaaaaaaater :)
+        init_client(comm, client_model, worker_number, (train_data_batch, train_label_batch),
+                    (test_data_batch,train_label_batch),process_id, facilitator_rank, args.epochs, device, args)
 
 def init_facilitator(comm, facilitator_model: Sequential, process_id: int, server_rank: int, worker_number: int,
                      device, args):

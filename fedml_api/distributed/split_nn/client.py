@@ -6,8 +6,19 @@ class SplitNN_client():
     def __init__(self, args):
         self.comm = args["comm"]
         self.model = args["model"]
+
         self.trainloader = args["trainloader"]
+        self.traindata = self.trainloader[0]
+        # ToDo this can be deleted once we have all the data at the server
+        self.trainlabel = self.trainloader[1]
+        self.train_counter = 0
+
         self.testloader = args["testloader"]
+        self.testdata = self.testloader[0]
+        # ToDo this can be deleted once we have all the data at the server
+        self.testlabel = self.testloader[1]
+        self.test_counter = 0
+
         self.MAX_RANK = args["max_rank"]
         self.optimizer = optim.SGD(self.model.parameters(), lr=0.1, momentum=0.9,
                                    weight_decay=5e-4)
@@ -21,12 +32,10 @@ class SplitNN_client():
         self.device = args["device"]
 
     def forward_pass(self):
-        inputs, labels = next(self.dataloader)
-        inputs, labels = inputs.to(self.device), labels.to(self.device)
         self.optimizer.zero_grad()
-        self.acts = self.model(inputs)
+        self.acts = self.model(self.data)
         logging.info("rank {} batch_idx {}".format(self.rank, self.batch_idx))
-        return self.acts, labels
+        return self.acts, self.datalabel
 
     def backward_pass(self, grads):
         self.acts.backward(grads)
@@ -34,10 +43,17 @@ class SplitNN_client():
 
     def eval_mode(self):
         logging.info("Step 11: Client Entered Eval_mode")
-        self.dataloader = iter(self.testloader)
+        self.datalabel = self.testlabel[self.test_counter].to(self.device)
+        self.data = self.testdata[self.test_counter].to(self.device)
+        self.test_counter += 1
+
         self.model.eval()
 
     def train_mode(self):
         logging.info("Entered Train_mode")
-        self.dataloader = iter(self.trainloader)
+        self.datalabel = self.trainlabel[self.train_counter].to(self.device)
+        logging.info("Entered Train_mode{}".format(self.datalabel))
+        self.data = self.traindata[self.train_counter].to(self.device)
+        self.train_counter += 1
+
         self.model.train()

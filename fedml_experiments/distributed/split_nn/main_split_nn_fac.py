@@ -74,7 +74,7 @@ def add_args(parser):
 
 def init_training_device(process_ID, fl_worker_num, gpu_num_per_machine):
     # initialize the mapping from process ID to GPU ID: <process ID, GPU ID>
-    if process_ID == 0:
+    if process_ID == 0 or process_ID == 1:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         return device
     process_gpu_dict = dict()
@@ -83,7 +83,7 @@ def init_training_device(process_ID, fl_worker_num, gpu_num_per_machine):
         process_gpu_dict[client_index] = gpu_index
 
     logging.info(process_gpu_dict)
-    device = torch.device("cuda:" + str(process_gpu_dict[process_ID - 1]) if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:" + str(process_gpu_dict[process_ID - 2]) if torch.cuda.is_available() else "cpu")
     logging.info(device)
     return device
 
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = add_args(parser)
 
-    device = init_training_device(process_id, worker_number - 1, args.gpu_num_per_server)
+    device = init_training_device(process_id, worker_number - 2, args.gpu_num_per_server)
 
     str_process_name = "SplitNN (distributed):" + str(process_id)
     setproctitle.setproctitle(str_process_name)
@@ -123,12 +123,9 @@ if __name__ == "__main__":
     else:
         data_loader = load_partition_data_distributed_cifar10
 
-    train_data_num, train_data_global, \
-    test_data_global, local_data_num, \
-    train_data_local, test_data_local, class_num = data_loader(process_id, args.dataset, args.data_dir,
-                                                               args.partition_method, args.partition_alpha,
-                                                               args.client_number, args.batch_size)
-
+    local_data_num, train_data_batch, train_label_batch, test_data_batch, test_label_batch, class_num \
+        = data_loader(process_id, args.dataset, args.data_dir,args.partition_method, args.partition_alpha,
+                                     args.client_number, args.batch_size)
     # create the model
     model = None
     split_layer_client = 3
@@ -149,4 +146,4 @@ if __name__ == "__main__":
     guest_model = nn.Sequential(*nn.ModuleList(model.children())[split_layer_facilitator:])
 
     SplitNN_fac_distributed(process_id, worker_number, device, comm, client_model, guest_model, facilitator_model,
-                            train_data_local, test_data_local, args)
+                            train_data_batch, train_label_batch, test_data_batch, test_label_batch, args)
