@@ -181,7 +181,7 @@ def get_dataloader_CIFAR10(datadir, batch_size, dataidxs=None):
     train_data_batch = []
     train_label_batch = []
 
-    for train_batch in range(20):#len(train_dataiter)): # Important Change this line made shorter to debug
+    for train_batch in range(len(train_dataiter)): # Important Change this line made shorter to debug
         train_data_data, train_data_label = train_dataiter.next()
         train_data_batch.append(train_data_data)
         train_label_batch.append(train_data_label)
@@ -190,7 +190,7 @@ def get_dataloader_CIFAR10(datadir, batch_size, dataidxs=None):
     test_data_batch = []
     test_label_batch = []
     logging.info("Can make this shorter to debug")
-    for test_batch in range(10):# len(test_dataiter)):
+    for test_batch in range(len(test_dataiter)):
         test_data_data, test_data_label = test_dataiter.next()
         test_data_batch.append(test_data_data)
         test_label_batch.append(test_data_label)
