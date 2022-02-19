@@ -31,17 +31,19 @@ class VFLGuestModel(object):
 
         """
         logger.debug("Step 5:receives the activation")
-        self.final_act = inter_act
+        final_act = inter_act
 
         if self.localModel != None:
             logger.debug("Step 5a: performs forward propagation")
-            self.final_act = self.localModel.forward(inter_act)
+            final_act = self.localModel.forward(inter_act)
+
+        return final_act
 
     def receive_concatination(self, concat_act: numpy.ndarray):
         """
         Receives the activations from the facilitator and calculated the loss
         """
-        self._fit(concat_act)
+        self.final_act = self._fit(concat_act)
         self._compute_loss(self.y)
 
     def set_batch(self, y:numpy.ndarray, global_step:int):
@@ -55,12 +57,9 @@ class VFLGuestModel(object):
         """
         Predicts the output based on the received activations from the facilitator
         """
-        if self.localModel == None:
-            logger.debug("Step 5:receives the activation")
-            self.final_act = final_act
-        else:
-            logger.debug("Step 5:receives the activation, preforms forward ")
-            self.final_act = self._fit(final_act)
+        logger.debug("Step 5:receives the activation")
+        self.final_act = self._fit(final_act)
+
         return sigmoid(np.sum(final_act, axis=1))
 
     def _compute_loss(self, y: numpy.ndarray):
